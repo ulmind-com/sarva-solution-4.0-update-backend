@@ -444,11 +444,13 @@ export const sellToUser = asyncHandler(async (req, res) => {
         }
 
         // ── 1ST PURCHASE PV HOOK FOR FRANCHISE PAYOUT ───────────
-        if (isFirstPurchase && totalPV > 0) {
+        // Commission follows the same 0.5 steps as the binary legs, so a 0.6 PV
+        // sale earns on 0.5 PV. The flushed remainder pays nothing anywhere.
+        if (isFirstPurchase && effectivePV > 0) {
             try {
                 await franchisePayoutService.recordFirstPurchasePV(
                     req.franchise._id,
-                    totalPV
+                    effectivePV
                 );
             } catch (err) {
                 console.error('[FranchisePayout] Failed to record PV:', err.message);
