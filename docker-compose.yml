@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  ssvpl-mlm-api:
+    image: samiransamanta/sarva_solutions_backend_v3:latest
+    container_name: ssvpl-mlm-api
+    restart: always
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - PORT=${PORT:-8000}
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONGO_URI=${MONGO_URI:-}
+      - JWT_SECRET=${JWT_SECRET:-}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - MAIL_ADDRESS=${MAIL_ADDRESS:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-}
+      - APITXT_AUTHKEY=${APITXT_AUTHKEY:-}
+      - APITXT_BASE_URL=${APITXT_BASE_URL:-https://apitxt.com/api/sendOTP}
+      - APITXT_CHANNEL=${APITXT_CHANNEL:-sms}
+      - APITXT_TEMPLATE_ID=${APITXT_TEMPLATE_ID:-}
+      - OTP_VERIFICATION_REQUIRED=${OTP_VERIFICATION_REQUIRED:-true}
+      - FRANCHISE_LOGIN_URL=${FRANCHISE_LOGIN_URL:-}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ssvpl-network
+
+networks:
+  ssvpl-network:
+    driver: bridge

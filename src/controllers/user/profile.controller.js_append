@@ -1,0 +1,18 @@
+/**
+ * Check if current user has done first purchase
+ * @route GET /api/v1/user/first-purchase-status
+ */
+export const getFirstPurchaseStatus = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('isFirstPurchaseDone personalPV totalPV');
+    
+    // In case the flag is not set but PV exists (for legacy users before migration), we can infer
+    // logic: if isFirstPurchaseDone is true OR totalPV > 0
+    const status = user.isFirstPurchaseDone || user.totalPV > 0;
+
+    return res.status(200).json(
+        new ApiResponse(200, { 
+            isFirstPurchaseDone: status,
+            isFirstPurchaseDoneFlag: user.isFirstPurchaseDone // Raw flag for debugging
+        }, 'First purchase status fetched successfully')
+    );
+});
