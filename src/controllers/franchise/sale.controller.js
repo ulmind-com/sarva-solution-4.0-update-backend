@@ -14,6 +14,7 @@ import { uploadPDFToCloudinary } from '../../services/integration/cloudinary.ser
 import UserFinance from '../../models/UserFinance.model.js';
 import { selfRepurchaseService } from '../../services/business/selfRepurchase.service.js';
 import { franchisePayoutService } from '../../services/business/franchisePayout.service.js';
+import { MIN_ACTIVATION_PV, toEffectivePV, getFlushedPV } from '../../utils/pv.util.js';
 
 /**
  * Get User by MemberId
@@ -171,10 +172,18 @@ export const sellToUser = asyncHandler(async (req, res) => {
         // 6. Validate Purchase Type and Determine Activation
         let willActivate = false;
 
+        // PV counts in fixed 0.5 steps. The bill records what was actually bought
+        // (totalPV), but only whole 0.5 steps (effectivePV) reach the binary legs —
+        // the remainder is flushed out. e.g. 0.6 PV -> 0.5 counts, 0.1 flushed.
+        let effectivePV = 0;
+        let flushedPV = 0;
+
         if (isFirstPurchase) {
-            if (totalPV < 1) {
-                throw new ApiError(400, 'First purchase must have at least 1 PV to activate the account and generate the bill.');
+            if (totalPV < MIN_ACTIVATION_PV) {
+                throw new ApiError(400, `First purchase must have at least ${MIN_ACTIVATION_PV} PV to activate the account and generate the bill.`);
             }
+            effectivePV = toEffectivePV(totalPV);
+            flushedPV = getFlushedPV(totalPV);
             willActivate = (user.status === 'inactive');
         }
 
@@ -192,6 +201,8 @@ export const sellToUser = asyncHandler(async (req, res) => {
             grandTotal,
             totalPV,
             totalBV,
+            effectivePV,
+            flushedPV,
             isFirstPurchase,
             userActivated: willActivate,
             paymentMethod,
@@ -202,15 +213,16 @@ export const sellToUser = asyncHandler(async (req, res) => {
         const financeUpdate = {};
 
         if (isFirstPurchase) {
-            user.personalPV += totalPV;
-            user.totalPV += totalPV;
-            user.thisMonthPV += totalPV;
-            user.thisYearPV += totalPV;
+            // Only the 0.5-step portion is credited; the flushed remainder is dropped.
+            user.personalPV += effectivePV;
+            user.totalPV += effectivePV;
+            user.thisMonthPV += effectivePV;
+            user.thisYearPV += effectivePV;
 
-            financeUpdate.personalPV = totalPV;
-            financeUpdate.totalPV = totalPV;
-            financeUpdate.thisMonthPV = totalPV;
-            financeUpdate.thisYearPV = totalPV;
+            financeUpdate.personalPV = effectivePV;
+            financeUpdate.totalPV = effectivePV;
+            financeUpdate.thisMonthPV = effectivePV;
+            financeUpdate.thisYearPV = effectivePV;
 
             user.isFirstPurchaseDone = true;
             user.activationDate = new Date();
@@ -254,14 +266,14 @@ export const sellToUser = asyncHandler(async (req, res) => {
 
         // ALWAYS propagate BV/PV up the binary tree for both first purchases and repurchases.
         // A major bug existed previously where repurchases silently never cascaded upwards here.
-        if (totalBV > 0 || totalPV > 0) {
+        if (totalBV > 0 || effectivePV > 0) {
             await mlmModule.mlmService.propagateBVUpTree(
                 user._id,
                 user.position, // Leg orientation relative to immediate sponsor/parent
                 totalBV || 0,
                 isFirstPurchase ? 'first-purchase' : 'repurchase',
                 `SALE-${sale[0].saleNo}`,
-                totalPV || 0
+                effectivePV || 0
             );
         }
 
@@ -450,6 +462,8 @@ export const sellToUser = asyncHandler(async (req, res) => {
                 userActivated: willActivate,
                 isFirstPurchase,
                 totalPV,
+                effectivePV,
+                flushedPV,
                 totalBV,
                 grandTotal,
                 emailSent,

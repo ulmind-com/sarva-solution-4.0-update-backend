@@ -115,6 +115,17 @@ const franchiseSaleSchema = new mongoose.Schema({
         default: 0
     },
 
+    // PV actually credited to the binary legs (totalPV floored to a 0.5 step)
+    effectivePV: {
+        type: Number,
+        default: 0
+    },
+    // PV bought but dropped because it did not complete a 0.5 step
+    flushedPV: {
+        type: Number,
+        default: 0
+    },
+
     // First Purchase & Activation
     isFirstPurchase: {
         type: Boolean,
