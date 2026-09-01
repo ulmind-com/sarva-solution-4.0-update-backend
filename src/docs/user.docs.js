@@ -651,19 +651,3 @@
  *                         pages: { type: integer }
  */
 
-/**
- * @swagger
- * /api/v1/user/activate:
- *   post:
- *     summary: Activate user account with joining package (User only)
- *     description: |
- *       **User Access Only** - Activate your account by purchasing the joining package (500 BV).
- *     tags: [User - Account]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Account activated successfully
- *       400:
- *         description: Already active or invalid request
- */
