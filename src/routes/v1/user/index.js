@@ -124,9 +124,7 @@ router.get('/products', getUserProducts);
 router.get('/products-by-category', getProductsByCategory);
 
 import { getDirectTeam, getCompleteTeam, getStarCount, getIsolatedRank } from '../../../controllers/user/user.controller.js';
-import { activateUser } from '../../../controllers/user/activate_user.controller.js';
 
-router.post('/activate', activateUser);
 router.get('/direct-team', getDirectTeam); // New Route for Direct Team List
 router.get('/team/complete', getCompleteTeam); // Recursively fetch complete team by leg
 router.get('/network/star-count/:memberId', getStarCount); // Fetches Left & Right exact Star counts
