@@ -6,7 +6,7 @@ import BVTransaction from '../../models/BVTransaction.model.js';
 import Payout from '../../models/Payout.model.js';
 import Configs from '../../config/config.js';
 import chalk from 'chalk';
-import { toEffectivePV } from '../../utils/pv.util.js';
+import { floorToPvStep } from '../../utils/pv.util.js';
 
 /**
  * Service to handle Genealogy Tree logic and BV propagation.
@@ -507,8 +507,8 @@ export const mlmService = {
 
                 // Leg PV, floored to a 0.5 step — the legs only ever earn in
                 // 0.5 units, so a legacy value like 0.7 is shown as 0.5.
-                leftLegPV: toEffectivePV(finance?.leftLegPV || 0),
-                rightLegPV: toEffectivePV(finance?.rightLegPV || 0),
+                leftLegPV: floorToPvStep(finance?.leftLegPV || 0),
+                rightLegPV: floorToPvStep(finance?.rightLegPV || 0),
 
                 // Stars need to be counted? 
                 // If we didn't store "leftLegStars", we can't easily deliver it without recursion.

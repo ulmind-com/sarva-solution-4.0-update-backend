@@ -172,9 +172,10 @@ export const sellToUser = asyncHandler(async (req, res) => {
         // 6. Validate Purchase Type and Determine Activation
         let willActivate = false;
 
-        // PV counts in fixed 0.5 steps. The bill records what was actually bought
-        // (totalPV), but only whole 0.5 steps (effectivePV) reach the binary legs —
-        // the remainder is flushed out. e.g. 0.6 PV -> 0.5 counts, 0.1 flushed.
+        // PV counts in fixed 0.5 steps and is capped at 1. The bill records what was
+        // actually bought (totalPV), but only the counted part (effectivePV) reaches
+        // the binary legs and the franchise commission; the rest is flushed out.
+        // e.g. 0.6 -> 0.5 counts, 0.1 flushed;  3 -> 1 counts, 2 flushed.
         let effectivePV = 0;
         let flushedPV = 0;
 
@@ -444,8 +445,9 @@ export const sellToUser = asyncHandler(async (req, res) => {
         }
 
         // ── 1ST PURCHASE PV HOOK FOR FRANCHISE PAYOUT ───────────
-        // Commission follows the same 0.5 steps as the binary legs, so a 0.6 PV
-        // sale earns on 0.5 PV. The flushed remainder pays nothing anywhere.
+        // Commission uses the same capped, 0.5-step PV as the binary legs, so a
+        // 0.6 PV sale earns on 0.5 PV and a 3 PV sale earns on 1 PV. The flushed
+        // remainder pays nothing anywhere.
         if (isFirstPurchase && effectivePV > 0) {
             try {
                 await franchisePayoutService.recordFirstPurchasePV(
