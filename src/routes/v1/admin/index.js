@@ -201,6 +201,10 @@ router.use('/requests', requestRoutes); // Pluralized to match user preference
 import franchiseSalesSummaryRoutes from './franchiseSalesSummary.routes.js';
 router.use('/franchise-sales-summary', franchiseSalesSummaryRoutes);
 
+// ISOLATED per-bonus qualifier lists (read-only, self-contained)
+import bonusQualifiersRoutes from './bonusQualifiers.routes.js';
+router.use('/bonus-qualifiers', bonusQualifiersRoutes);
+
 
 export default router;
 
