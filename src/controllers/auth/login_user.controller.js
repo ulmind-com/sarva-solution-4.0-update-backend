@@ -19,6 +19,13 @@ export const login = asyncHandler(async (req, res) => {
         throw new ApiError(401, 'Invalid credentials');
     }
 
+    // Blocked members cannot sign in, correct password or not.
+    if (user.isBlocked) {
+        throw new ApiError(403, user.blockReason
+            ? `Account Suspended. Reason: ${user.blockReason}`
+            : 'Account Suspended. Please contact support.');
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
         throw new ApiError(401, 'Invalid credentials');

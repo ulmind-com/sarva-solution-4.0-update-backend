@@ -231,6 +231,70 @@ export const changeUserPassword = asyncHandler(async (req, res) => {
     );
 });
 /**
+ * Block a member from signing in (Admin only)
+ * PATCH /api/v1/admin/users/:memberId/block
+ *
+ * Only the ability to log in is affected. The member's tree position, volume,
+ * matching, payouts and every other record carry on exactly as before — and an
+ * active session ends on the member's next request, because authMiddleware reads
+ * this flag fresh from the database.
+ */
+export const blockUser = asyncHandler(async (req, res) => {
+    const { memberId } = req.params;
+    const { reason } = req.body;
+
+    const user = await User.findOne({ memberId });
+    if (!user) {
+        throw new ApiError(404, 'User not found');
+    }
+
+    if (user.role === 'admin') {
+        throw new ApiError(400, 'Admin accounts cannot be blocked');
+    }
+
+    user.isBlocked = true;
+    user.blockedAt = new Date();
+    user.blockedBy = req.user._id;
+    user.blockReason = reason || '';
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            memberId: user.memberId,
+            isBlocked: true,
+            blockedAt: user.blockedAt,
+            blockReason: user.blockReason
+        }, `${user.fullName} can no longer log in`)
+    );
+});
+
+/**
+ * Let a blocked member sign in again (Admin only)
+ * PATCH /api/v1/admin/users/:memberId/unblock
+ */
+export const unblockUser = asyncHandler(async (req, res) => {
+    const { memberId } = req.params;
+
+    const user = await User.findOne({ memberId });
+    if (!user) {
+        throw new ApiError(404, 'User not found');
+    }
+
+    user.isBlocked = false;
+    user.blockedAt = undefined;
+    user.blockedBy = undefined;
+    user.blockReason = undefined;
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            memberId: user.memberId,
+            isBlocked: false
+        }, `${user.fullName} can log in again`)
+    );
+});
+
+/**
  * Get all users with full KYC and Bank details for verification (Admin only)
  */
 export const getUsersKYCDetails = asyncHandler(async (req, res) => {

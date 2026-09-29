@@ -208,6 +208,14 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'inactive' },
 
+    // Login block — independent of `status`, which is the MLM activation state and
+    // is what every bonus service filters on. Blocking only stops the member from
+    // signing in; their tree, volume, payouts and records carry on untouched.
+    isBlocked: { type: Boolean, default: false },
+    blockedAt: { type: Date },
+    blockedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    blockReason: { type: String },
+
     // Timezone Fields
     createdAt_IST: { type: String, default: () => moment().tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss') },
     updatedAt_IST: { type: String, default: () => moment().tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss') }

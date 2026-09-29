@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, getUserByMemberId, updateUserByAdmin, verifyKYC, changeUserPassword, getUsersKYCDetails } from '../../../controllers/admin/adminUser.controller.js';
+import { getAllUsers, getUserByMemberId, updateUserByAdmin, verifyKYC, changeUserPassword, getUsersKYCDetails, blockUser, unblockUser } from '../../../controllers/admin/adminUser.controller.js';
 
 import { getDashboardMetrics, processPayout, addManualBV, getPayouts, getAllTransactions, triggerBonusMatching, acceptPayout, rejectPayout, getAllUserWallets, getAllWalletLogs, getTreeBVSummary } from '../../../controllers/admin/adminManager.controller.js';
 import { fixDatabaseIssues } from '../../../controllers/admin/fixDatabase.controller.js';
@@ -37,6 +37,8 @@ router.get('/users/:memberId', getUserByMemberId);
 
 router.patch('/users/:memberId', updateUserByAdmin);
 router.patch('/users/:memberId/change-password', changeUserPassword);
+router.patch('/users/:memberId/block', blockUser);     // Stops sign-in only; records untouched
+router.patch('/users/:memberId/unblock', unblockUser);
 router.patch('/kyc/verify/:memberId', verifyKYC);
 
 // System Management

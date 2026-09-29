@@ -23,6 +23,18 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
+        // Read fresh from the database on every request, so blocking a member
+        // ends the session they are already in rather than waiting for the token
+        // to expire.
+        if (user.isBlocked) {
+            return res.status(401).json({
+                success: false,
+                message: user.blockReason
+                    ? `Account Suspended. Reason: ${user.blockReason}`
+                    : 'Account Suspended. Please contact support.'
+            });
+        }
+
         req.user = user;
         next();
     } catch (error) {
