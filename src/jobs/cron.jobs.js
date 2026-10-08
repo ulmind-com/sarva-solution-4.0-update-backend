@@ -51,8 +51,10 @@ export const cronJobs = {
             await cronJobs.processAutomaticPayouts();
         }, { timezone: "Asia/Kolkata" });
 
-        // 6. Binary Closing Cron (Every 4 Hours)
-        // Runs at 00:00, 04:00, 08:00, 12:00, 16:00, 20:00
+        // 6. Binary Closing Sweep (Every 4 Hours)
+        // Fast Track no longer has time windows — a match closes as soon as the
+        // PV lands. This sweep is only a safety net for anything the live
+        // trigger missed. Star Matching still uses its own 4-hour windows.
         cron.schedule('0 */4 * * *', async () => {
             console.log(chalk.blue('Running 4-Hour Binary Closing...'));
             await cronJobs.processBinaryClosings();
@@ -373,7 +375,7 @@ export const cronJobs = {
     },
 
     /**
-     * Logic: 4-Hour Binary Closing Sweep
+     * Logic: Binary Closing Sweep (safety net — see the schedule comment above)
      */
     processBinaryClosings: async () => {
         try {

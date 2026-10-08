@@ -99,8 +99,8 @@ const userFinanceSchema = new mongoose.Schema({
     // Fast Track Bonus (Time-Sensitive Matching)
     fastTrack: {
         lastClosingTime: { type: Date, default: null },
-        dailyClosings: { type: Number, default: 0 }, // Max 6
-        pendingPairLeft: { type: Number, default: 0 }, // PV Buffer for 4hr window
+        dailyClosings: { type: Number, default: 0 }, // Max 9 per IST day
+        pendingPairLeft: { type: Number, default: 0 }, // PV waiting to be matched
         pendingPairRight: { type: Number, default: 0 },
         carryForwardLeft: { type: Number, default: 0 }, // Official Carry Forward
         carryForwardRight: { type: Number, default: 0 }, // Should we use the root level ones? Let's keep specific ones here or use root.

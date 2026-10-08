@@ -28,11 +28,11 @@ This documentation covers the full SSVPL Multi-Level Marketing ecosystem.
 5. **Binary Matching & Payouts**:
    - **Eligibility**: At least one **active direct** member on the left and one on the right.
    - **Matching**: 1 PV : 2 PV (either side may be the heavy side) for the first payout, then 1 PV : 1 PV. Unmatched PV carries forward.
-   - **Closings**: Six fixed 4-hour windows daily (IST) — 00–04, 04–08, 08–12, 12–16, 16–20, 20–00. Only one payout per window; a second match inside the same window is flushed out.
+   - **Closings**: No time windows — a match closes as soon as the PV is there. Up to **9 closings per day** (IST); anything matched after that is flushed out, consuming the PV without paying.
    - **Payout**: ₹500 gross per match, less 10% admin charge, 2% TDS and 8% Savings Wallet.
 
 ### ⚖️ Business Rules
-- **Deduction Closings**: The 3rd, 6th, 9th and 12th valid payouts are fully deducted for rank advancement. The 12th also makes the member a **Star**, which propagates up the tree.
+- **Deduction Closings**: Every 3rd valid payout is fully deducted for rank advancement — 3, 6, 9, 12, 15, 18 and onwards, for the life of the account. The counter is cumulative, so each day carries on from where the last one stopped. The 12th closing also makes the member a **Star**, which propagates up the tree.
 - **Withdrawals**: Deducted by the member's configured admin charge percentage plus 2% TDS.
 - **PAN Limit**: One account per PAN card.
 - **Phone Limit**: Max 3 accounts per mobile number.

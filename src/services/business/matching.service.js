@@ -10,6 +10,27 @@ import moment from 'moment-timezone';
 
 const TIMEZONE = "Asia/Kolkata";
 
+/**
+ * Fast Track closing rules
+ * ---------------------------------------------------------------------------
+ * There are no fixed time windows. A match closes the moment the PV is there.
+ *
+ * DAILY_CLOSING_LIMIT  how many closings a member may bank in one IST day.
+ *                      Anything matched after that flushes out — the PV is
+ *                      consumed, nothing is paid.
+ * DEDUCTION_EVERY      every Nth closing is withheld for rank advancement, and
+ *                      it keeps going for the life of the account: 3, 6, 9, 12,
+ *                      15, 18 and onwards.
+ * STAR_AT_CLOSING      the closing that turns the member into a Star.
+ *
+ * The counter is cumulative and never resets, so a day picks up where the last
+ * one stopped. With 9 closings a day and a deduction every 3rd, each day lands
+ * on exactly 6 paid and 3 withheld.
+ */
+const DAILY_CLOSING_LIMIT = 9;
+const DEDUCTION_EVERY = 3;
+const STAR_AT_CLOSING = 12;
+
 export const matchingService = {
 
     /**
@@ -52,33 +73,22 @@ export const matchingService = {
             return;
         }
 
-        // 2. Determine Current Time Slot (Fixed 4-Hour Windows IST)
-        // Slots: 00-04, 04-08, 08-12, 12-16, 16-20, 20-00
+        // 2. The day runs midnight to midnight IST — no slots inside it.
         const nowIST = moment().tz(TIMEZONE);
         const startOfTodayIST = nowIST.clone().startOf('day'); // 00:00:00 IST
 
-        const currentHour = nowIST.hour(); // 0-23 (IST)
-        const slotIndex = Math.floor(currentHour / 4); // 0 to 5
-
-        // Calculate Slot Boundaries in IST, then convert to JS Date (UTC)
-        const slotStartTime = startOfTodayIST.clone().add(slotIndex * 4, 'hours').toDate();
-        const slotEndTime = startOfTodayIST.clone().add((slotIndex + 1) * 4, 'hours').toDate();
-
-        // 3. Check for Existing Payout in THIS Slot
-        // WE CHECK FOR *ANY* PAYOUT (Bonus, Deduction, OR Flashout) to determine if we act?
-        // User: "12 4 8 ... is time ke anr kaam hoga ... 1 ko chor ke baki sab flashout"
-        // So: If 0 payouts in slot -> Valid Payout.
-        // If >= 1 payout in slot -> Flash Out (still consumes points).
-
-        const payoutsInSlot = await Payout.find({
+        // 3. Has this member already banked today's allowance?
+        // Flushed closings are not counted, so they neither pay the member nor
+        // use up one of the day's nine.
+        const closingsToday = await Payout.countDocuments({
             userId: userId,
-            payoutType: { $in: ['fast-track-bonus', 'fast-track-deduction', 'fast-track-flashout'] },
-            createdAt: { $gte: slotStartTime, $lt: slotEndTime }
+            payoutType: { $in: ['fast-track-bonus', 'fast-track-deduction'] },
+            createdAt: { $gte: startOfTodayIST.toDate() }
         });
 
-        let isFlashOut = payoutsInSlot.length > 0;
+        let isFlashOut = closingsToday >= DAILY_CLOSING_LIMIT;
         if (isFlashOut) {
-            console.log(`[Matching] Slot ${slotIndex} (${slotStartTime.getHours()}-${slotEndTime.getHours()}) already has ${payoutsInSlot.length} payouts. Triggering FLASHOUT.`);
+            console.log(`[Matching] ${finance.memberId} already has ${closingsToday} closings today (limit ${DAILY_CLOSING_LIMIT}). Triggering FLASHOUT.`);
         }
 
         // 4. Calculate Available PV
@@ -160,15 +170,16 @@ export const matchingService = {
             });
 
             closingCount = validPayoutsCount + 1; // This is the Nth valid payout
-            const deductionPoints = [3, 6, 9, 12];
 
-            if (deductionPoints.includes(closingCount)) {
+            // Every 3rd closing is withheld, and it never stops — 3, 6, 9, 12,
+            // 15, 18 and so on for as long as the account keeps matching.
+            if (closingCount % DEDUCTION_EVERY === 0) {
                 netAmount = 0;
                 payoutType = 'fast-track-deduction';
                 status = 'deducted';
 
-                // Trigger Star Logic at 12th Payout
-                if (closingCount === 12) {
+                // Trigger Star Logic at the 12th closing (unchanged)
+                if (closingCount === STAR_AT_CLOSING) {
                     // Mark User as Star
                     finance.isStar = true;
                     await finance.save();
@@ -184,8 +195,7 @@ export const matchingService = {
         // 7. Update State
         finance.fastTrack.lastClosingTime = nowIST.toDate();
 
-        // Only increment Daily Closings if it was a VALID payout (not flushed)
-        // User rule: "ek din pe user 6 bar hi kar payega" (6 Opportunities)
+        // Only a banked closing uses up part of the daily allowance.
         if (status !== 'flushed') {
             finance.fastTrack.dailyClosings += 1;
         }
@@ -222,7 +232,7 @@ export const matchingService = {
             status,
             metadata: {
                 isFlashOut: isFlashOut,
-                reason: isFlashOut ? `Slot ${slotIndex} Limit Exceeded` : 'Matching Bonus',
+                reason: isFlashOut ? `Daily limit of ${DAILY_CLOSING_LIMIT} closings reached` : 'Matching Bonus',
                 closingCount: (status !== 'flushed') ? closingCount : undefined
             }
         });
